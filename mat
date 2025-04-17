@@ -1,0 +1,64 @@
+!pip install git+https://github.com/physics-codes/pythtb.git
+import numpy as np
+import matplotlib.pyplot as plt
+from pythtb import *
+
+def ba_fe2_as2_tb_model(include_soc=False):
+    a = 3.9625
+    b = 3.9625
+    c = 12.677
+    lat = [[a, 0, 0], [0, b, 0], [0, 0, c]]
+    
+    model = tb_model(3, 3, lat)
+    
+    orb_pos = [
+        [0.0, 0.0, 0.0], [0.5, 0.5, 0.0],
+        [0.5, 0.0, 0.25], [0.0, 0.5, 0.25],
+        [0.0, 0.5, -0.25], [0.5, 0.0, -0.25]
+    ]
+    
+    model.set_onsite([0]*22)
+    
+    t_fe_fe = 0.3
+    t_fe_as = 1.2
+    
+    model.set_hop(t_fe_fe, 0, 1, [0, 0, 0])
+    model.set_hop(t_fe_fe, 0, 1, [0, 0, 0])
+    model.set_hop(t_fe_as, 0, 2, [0, 0, 0])
+    model.set_hop(t_fe_as, 0, 4, [0, 0, 0])
+    
+    e_fe = [-0.5, -0.3, -0.3, -0.2, 0.1]
+    e_as = [1.5, 1.5, 1.2]
+    
+    for i in range(2):
+        for j in range(5):
+            model.set_onsite(e_fe[j], i*5 + j)
+    
+    for i in range(4):
+        for j in range(3):
+            model.set_onsite(e_as[j], 10 + i*3 + j)
+    
+    return model
+
+model_nosoc = ba_fe2_as2_tb_model(include_soc=False)
+
+k_path = [[0.0, 0.0, 0.0], [0.5, 0.0, 0.0], [0.5, 0.5, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.5]]
+k_label = ["G", "X", "M", "G", "Z"]
+nk = 51
+
+(k_vec, k_dist, k_node) = model_nosoc.k_path(k_path, nk)
+evals = model_nosoc.solve_all(k_vec)
+
+plt.figure(figsize=(8, 6))
+for band in range(22):
+    plt.plot(k_dist, evals[band], 'k-', linewidth=1)
+plt.xlabel("k-path")
+plt.ylabel("Energy (eV)")
+plt.title("BaFe₂As₂ Band Structure (Without SOC)")
+plt.xlim(0, k_dist[-1])
+plt.ylim(-2, 2)
+plt.xticks(k_node, k_label)
+plt.axhline(0, linestyle='--', color='r', linewidth=0.5)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
